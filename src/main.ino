@@ -18,9 +18,9 @@ enum Direction
 // Variables
 ////////////////////////////////////////////////////////////
 Zumo32U4Buzzer soundPlayer;
-Zumo32U4ButtonA buttA;
-Zumo32U4ButtonB buttB;
-Zumo32U4ButtonC buttC;
+Zumo32U4ButtonA buttonA;
+Zumo32U4ButtonB buttonB;
+Zumo32U4ButtonC buttonC;
 Zumo32U4Encoders encoders;
 Zumo32U4Motors motors;
 Zumo32U4LCD lcd;
@@ -28,6 +28,8 @@ Zumo32U4LineSensors s;
 L3G gyro;
 
 unsigned int lineSensorValues[3];
+const char beep1[] PROGMEM = "!>32";
+
 
 uint16_t borderAnalyzeEncoderCounts;
 
@@ -141,7 +143,7 @@ public:
       lcd.print(F("     "));
     }
 
-    if (buttA.getSingleDebouncedPress())
+    if (buttonA.getSingleDebouncedPress())
     {
       soundPlayer.playFromProgramSpace(beep1);
       changeStateToWaiting();
@@ -233,7 +235,7 @@ class StateDriving : public State
 
     // Check for the white border.
     s.read(lineSensorValues);
-    if (lineSensorValues[0] < borderThreshold || lineSensorValues[2] < lineSensorThreshold)
+    if (lineSensorValues[0] < borderThreshold || lineSensorValues[2] < borderThreshold)
     {
       turnCenterDir = (lineSensorValues[0] < borderThreshold) ? DirectionRight : DirectionLeft;
       changeStateToAnalyzingBorder();
