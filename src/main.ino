@@ -3,6 +3,7 @@
 #include "Gyro.h"
 #include "StateClasses.h"
 #include "defines.h"
+#include "proxSensor.h"
 
 ////////////////////////////////////////////////////////////
 // Structs and Enums
@@ -114,6 +115,7 @@ void changeState(State & state)
 
 void changeStateToPausing();
 void changeStateToWaiting();
+void changeStateToSensing();
 void changeStateToTurningToCenter();
 void changeStateToDriving();
 void changeStateToBacking();
@@ -181,11 +183,26 @@ class StateWaiting : public State
     else
     {
       // We have waited long enough.  Start moving.
-      changeStateToDriving();
+      //changeStateToDriving();
+      changeStateToSensing();
     }
   }
 } stateWaiting;
 void changeStateToWaiting() { changeState(stateWaiting); }
+
+
+class StateSensing : public State
+{
+  void setup()
+  {
+  }
+
+  void loop()
+  {
+      sensePrint();
+  }
+} stateSensing;
+void changeStateToSensing() { changeState(stateSensing); }
 
 
 
@@ -516,6 +533,7 @@ void setup()
 {
   gyroInit();
   s.initThreeSensors();
+  senseInit();
   changeStateToPausing();
 }
 
