@@ -107,6 +107,17 @@ void changeState(State & state)
   currState = &state;
 }
 
+void changeStateToPausing();
+void changeStateToWaiting();
+void changeStateToTurningToCenter();
+void changeStateToDriving();
+void changeStateToBacking();
+void changeStateToPushing();
+void changeStateToScanning();
+void changeStateToAnalyzingBorder();
+void changeStateToDriveAlmostCenter();
+void changeStateToCircling();
+
 
 bool borderCheck()
 {
@@ -122,22 +133,9 @@ bool borderCheck()
 }
 
 
-
 ////////////////////////////////////////////////////////////
 // States
 ////////////////////////////////////////////////////////////
-
-void changeStateToPausing();
-void changeStateToWaiting();
-void changeStateToTurningToCenter();
-void changeStateToDriving();
-void changeStateToBacking();
-void changeStateToPushing();
-void changeStateToScanning();
-void changeStateToAnalyzingBorder();
-void changeStateToDriveAlmostCenter();
-void changeStateToCircling();
-
 
 // In this state, we just wait for the user to press butt
 // A, while displaying the battery voltage every 100 ms.
@@ -222,7 +220,7 @@ class StateTurningToCenter : public State
     uint32_t angle = (turnCenterDir == DirectionRight) ? -turnAngle: turnAngle;
     if (angle > turnCenterAngle && angle < (angle45 * 7))
     {
-      changeStateToDriveAlmostCenter();
+      changeStateToDriving();
     }
   }
 } stateTurningToCenter;
