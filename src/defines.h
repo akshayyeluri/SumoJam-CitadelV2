@@ -70,7 +70,7 @@
 #define analyzeSpeed 100
 
 // The speed for center turning.
-#define turnCenterSpeed 80
+#define turnCenterSpeed 400
 
 // The number of encoder ticks from edge to center
 #define edgeToCenterTicks 2100 // 2180
@@ -83,4 +83,12 @@
 // side line sensors.
 #define sensorDistance 440
 
+//Fraction of encoder ticks of distance to travel back to center from edge
+#define fractionAlmostCenter 0.5
 
+//Speed to test with
+#define testingSpeed 400
+
+//speed to circle with 
+#define circleLeftSpeed 200
+#define circleRightSpeed 400

@@ -1,0 +1,6 @@
+{
+    "sketch": "src\\main.ino",
+    "port": "COM7",
+    "board": "pololu-a-star:avr:a-star32U4",
+    "programmer": "AVRISP mkII"
+}
