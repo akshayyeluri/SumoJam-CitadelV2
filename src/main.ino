@@ -4,38 +4,43 @@
 #include "StateClasses.h"
 #include "defines.h"
 
-Zumo32U4Buzzer buzzer;
-Zumo32U4Encoders encoders;
-Zumo32U4Motors motors;
-Zumo32U4LCD lcd;
-Zumo32U4LineSensors lineSensors;
-Zumo32U4ButtonA buttonA;
-Zumo32U4ButtonB buttonB;
-Zumo32U4ButtonC buttonC;
-L3G gyro;
-
-const char beep1[] PROGMEM = "!>c32";
-
+////////////////////////////////////////////////////////////
+// Structs and Enums
+////////////////////////////////////////////////////////////
 enum Direction
 {
   DirectionLeft,
   DirectionRight,
 };
 
-bool motorsEnabled = false;
+
+////////////////////////////////////////////////////////////
+// Variables
+////////////////////////////////////////////////////////////
+Zumo32U4Buzzer soundPlayer;
+Zumo32U4ButtonA buttonA;
+Zumo32U4ButtonB buttonB;
+Zumo32U4ButtonC buttonC;
+Zumo32U4Encoders encoders;
+Zumo32U4Motors motors;
+Zumo32U4LCD lcd;
+Zumo32U4LineSensors s;
+L3G gyro;
+
 unsigned int lineSensorValues[3];
+const char beep1[] PROGMEM = "!>32";
+
+
+uint16_t borderAnalyzeEncoderCounts;
 
 // scanDir is the direction the robot should turn the next time
 // it scans for an opponent.
 Direction scanDir = DirectionLeft;
-
 Direction turnCenterDir;
 uint32_t turnCenterAngle;
 
-uint16_t borderAnalyzeEncoderCounts;
-
 // The time, in milliseconds, that we entered the current top-level state.
-uint16_t stateStartTime;
+uint16_t beginStateTime;
 
 // The time, in milliseconds, that the LCD was last updated.
 uint16_t displayTime;
@@ -43,61 +48,69 @@ uint16_t displayTime;
 // This gets set to true whenever we change to a new state.
 // A state can read and write this variable this in order to
 // perform actions just once at the beginning of the state.
-bool justChangedState;
+bool recentStateChange;
 
 // This gets set whenever we clear the display.
 bool displayCleared;
-
 bool lastStopAtEdge;
+
+// The state we are in
+State * currState;
+
+
+
+////////////////////////////////////////////////////////////
+// Helper Functions
+////////////////////////////////////////////////////////////
 
 // Gets the amount of time we have been in this state, in
 // milliseconds.  After 65535 milliseconds (65 seconds), this
 // overflows to 0.
 uint16_t timeInThisState()
 {
-  return (uint16_t)(millis() - stateStartTime);
+  return (uint16_t)(millis() - beginStateTime);
 }
 
 // Returns true if the display has been cleared or the contents
 // on it have not been updated in a while.  The time limit used
 // to decide if the contents are staled is specified in
 // milliseconds by the staleTime parameter.
-bool displayIsStale(uint16_t staleTime)
+bool displayStaled(uint16_t staleTime)
 {
-  return displayCleared || (millis() - displayTime) > staleTime;
+    bool stale = displayCleared || (millis() - displayTime) > staleTime;
+    if (stale) {
+        displayTime = millis();
+        displayCleared = false;
+    }
+    return stale;
 }
 
-// Any part of the code that uses displayIsStale to decide when
-// to update the LCD should call this function when it updates the
-// LCD.
-void displayUpdated()
-{
-  displayTime = millis();
-  displayCleared = false;
-}
 
 uint32_t calculateTurnCenterAngle(uint16_t counts)
 {
-  return ((uint32_t)turnAngle45 * 4 * ANGLE_FUDGE) -
+  return ((uint32_t)angle45 * 4 * ANGLE_FUDGE) -
     (uint32_t)((RAD_TO_INTERNAL_ANGLE * ANGLE_FUDGE) * atan((double)counts / sensorDistance));
 }
 
-extern State * robotState;
 
 // Changes to a new state.  It also clears the LCD and turns off
 // the LEDs so that the things the previous state were doing do
 // not affect the feedback the user sees in the new state.
 void changeState(State & state)
 {
-  justChangedState = true;
-  stateStartTime = millis();
-  ledRed(0);
-  ledYellow(0);
-  ledGreen(0);
-  lcd.clear();
+  recentStateChange = true;
   displayCleared = true;
-  robotState = &state;
+  beginStateTime = millis();
+  ledRed(0); ledYellow(0); ledGreen(0);
+  lcd.clear();
+  currState = &state;
 }
+
+
+
+////////////////////////////////////////////////////////////
+// States
+////////////////////////////////////////////////////////////
 
 void changeStateToPausing();
 void changeStateToWaiting();
@@ -110,23 +123,23 @@ void changeStateToAnalyzingBorder();
 void changeStateToDriveAlmostCenter();
 void changeStateToCircling();
 
-// In this state, we just wait for the user to press button
+
+// In this state, we just wait for the user to press butt
 // A, while displaying the battery voltage every 100 ms.
 class StatePausing : public State
 {
 public:
   void setup()
   {
-    lastStopAtEdge = true;
     motors.setSpeeds(0, 0);
     lcd.print(F("Press A"));
+    lastStopAtEdge = true;
   }
 
   void loop()
   {
-    if (displayIsStale(100))
+    if (displayStaled(100))
     {
-      displayUpdated();
       lcd.gotoXY(0, 1);
       lcd.print(readBatteryMillivolts());
       lcd.print(F("     "));
@@ -134,14 +147,13 @@ public:
 
     if (buttonA.getSingleDebouncedPress())
     {
-      buzzer.playFromProgramSpace(beep1);
-      // The user pressed button A, so go to the waiting state.
+      soundPlayer.playFromProgramSpace(beep1);
       changeStateToWaiting();
     }
   }
 } statePausing;
 void changeStateToPausing() { changeState(statePausing); }
-State * robotState = &statePausing;
+
 
 class StateWaiting : public State
 {
@@ -175,30 +187,26 @@ class StateWaiting : public State
 } stateWaiting;
 void changeStateToWaiting() { changeState(stateWaiting); }
 
+
+
 class StateTurningToCenter : public State
 {
   void setup()
   {
     gyroReset();
-    lcd.print(F("turncent"));
+    lcd.print(F("TurnCent"));
   }
 
   void loop()
   {
-    if (turnCenterDir == DirectionLeft)
-    {
-      motors.setSpeeds(-turnCenterSpeed, turnCenterSpeed);
-    }
-    else
-    {
+    (turnCenterDir == DirectionLeft) ?
+      motors.setSpeeds(-turnCenterSpeed, turnCenterSpeed) :
       motors.setSpeeds(turnCenterSpeed, -turnCenterSpeed);
-    }
 
     gyroUpdate();
 
-    uint32_t angle = turnAngle;
-    if (turnCenterDir == DirectionRight) { angle = -angle; }
-    if (angle > turnCenterAngle && angle < (turnAngle45 * 7))
+    uint32_t angle = (turnCenterDir == DirectionRight) ? -turnAngle: turnAngle;
+    if (angle > turnCenterAngle && angle < (angle45 * 7))
     {
       changeStateToDriveAlmostCenter();
     }
@@ -215,7 +223,7 @@ class StateDriving : public State
     encoders.getCountsAndResetLeft();
     encoders.getCountsAndResetRight();
     motors.setSpeeds(forwardSpeed, forwardSpeed);
-    lcd.print(F("drive"));
+    lcd.print(F("Driving"));
   }
 
   void loop()
@@ -228,14 +236,14 @@ class StateDriving : public State
     }
 
     // Check for the white border.
-    lineSensors.read(lineSensorValues);
-    if (lineSensorValues[0] < lineSensorThreshold)
+    s.read(lineSensorValues);
+    if (lineSensorValues[0] < borderThreshold || lineSensorValues[2] < borderThreshold)
     {
-      turnCenterDir = DirectionRight;
+      turnCenterDir = (lineSensorValues[0] < borderThreshold) ? DirectionRight : DirectionLeft;
       changeStateToAnalyzingBorder();
       return;
     }
-    if (lineSensorValues[2] < lineSensorThreshold)
+    if (lineSensorValues[2] < borderThreshold)
     {
       turnCenterDir = DirectionLeft;
       changeStateToAnalyzingBorder();
@@ -245,11 +253,12 @@ class StateDriving : public State
 } stateDriving;
 void changeStateToDriving() { changeState(stateDriving); }
 
+
 class StatePushing : public State
 {
   void setup()
   {
-    lcd.print(F("PUSH"));
+    lcd.print(F("PUSHING"));
   }
 
   void loop()
@@ -259,14 +268,14 @@ class StatePushing : public State
     motors.setSpeeds(rammingSpeed, rammingSpeed);
 
     // Check for the white border.
-    lineSensors.read(lineSensorValues);
-    if (lineSensorValues[0] < lineSensorThreshold)
+    s.read(lineSensorValues);
+    if (lineSensorValues[0] < borderThreshold)
     {
       turnCenterDir = DirectionRight;
       changeStateToAnalyzingBorder();
       return;
     }
-    if (lineSensorValues[2] < lineSensorThreshold)
+    if (lineSensorValues[2] < borderThreshold)
     {
       turnCenterDir = DirectionLeft;
       changeStateToAnalyzingBorder();
@@ -276,6 +285,7 @@ class StatePushing : public State
 } statePushing;
 void changeStateToPushing() { changeState(statePushing); }
 
+
 // In this state, the robot drives in reverse.
 class StateBacking : public State
 {
@@ -284,7 +294,7 @@ class StateBacking : public State
     encoders.getCountsAndResetLeft();
     encoders.getCountsAndResetRight();
     motors.setSpeeds(-reverseSpeed, -reverseSpeed);
-    lcd.print(F("back"));
+    lcd.print(F("Backing"));
   }
 
   void loop()
@@ -298,6 +308,7 @@ class StateBacking : public State
   }
 } stateBacking;
 void changeStateToBacking() { changeState(stateBacking); }
+
 
 // In this state the robot rotates in place and tries to find
 // its opponent.
@@ -322,7 +333,7 @@ class StateScanning : public State
       motors.setSpeeds(-turnSpeedLow, turnSpeedHigh);
     }
 
-    lcd.print(F("scan"));
+    lcd.print(F("Scanning"));
   }
 
   void loop()
@@ -339,9 +350,9 @@ class StateScanning : public State
     {
       angle1 = turnAngle;
     }
-    if ((int32_t)(angle1 - angleBase) > turnAngle45)
+    if ((int32_t)(angle1 - angleBase) > angle45)
     {
-      angleBase += turnAngle45;
+      angleBase += angle45;
       degreesTurned += 45;
     }
 
@@ -360,6 +371,7 @@ class StateScanning : public State
 } stateScanning;
 void changeStateToScanning() { changeState(stateScanning); }
 
+
 class StateAnalyzingBorder : public State
 {
   void setup()
@@ -367,7 +379,7 @@ class StateAnalyzingBorder : public State
     encoders.getCountsAndResetLeft();
     encoders.getCountsAndResetRight();
     motors.setSpeeds(analyzeSpeed, analyzeSpeed);
-    lcd.print(F("analyze"));
+    lcd.print(F("Anlyzing"));
     lastStopAtEdge = true;
   }
 
@@ -391,8 +403,8 @@ class StateAnalyzingBorder : public State
     int16_t counts = encoders.getCountsLeft() + encoders.getCountsRight();
 
     // Check the middle line sensor.
-    lineSensors.read(lineSensorValues);
-    if (lineSensorValues[1] < lineSensorThreshold)
+    s.read(lineSensorValues);
+    if (lineSensorValues[1] < borderThreshold)
     {
       if (counts < 0) { counts = 0; }
 
@@ -405,7 +417,7 @@ class StateAnalyzingBorder : public State
     // Make sure we don't travel too far.
     if (counts > 1600)
     {
-      turnCenterAngle = turnAngle45 * 3;
+      turnCenterAngle = angle45 * 3;
       changeStateToBacking();
     }
   }
@@ -476,15 +488,15 @@ class StateCircling : public State
       {
         angle1 = turnAngle;
       }
-      if ((int32_t)(angle1 - angleBase) > turnAngle45)
+      if ((int32_t)(angle1 - angleBase) > angle45)
       {
-        angleBase += turnAngle45;
+        angleBase += angle45;
         degreesTurned += 45;
       }
 
       uint16_t time = timeInThisState();
 
-      if (degreesTurned >= 2 * turnAngle45)
+      if (degreesTurned >= 2 * angle45)
       {
         // We have not seen anything for a while, so start driving.
         turned90 = true;
@@ -503,19 +515,18 @@ void changeStateToCircling() { changeState(stateCircling); }
 void setup()
 {
   gyroInit();
-  lineSensors.initThreeSensors();
+  s.initThreeSensors();
   changeStateToPausing();
-
-  //senseTest();
 }
+
 
 void loop()
 {
-  if (justChangedState)
+  if (recentStateChange)
   {
-    justChangedState = false;
-    robotState->setup();
+    recentStateChange = false;
+    currState->setup();
   }
 
-  robotState->loop();
+  currState->loop();
 }

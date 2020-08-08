@@ -25,7 +25,7 @@
 // consider that line sensor to have detected the white border at
 // the edge of the ring.  This value might need to be tuned for
 // different lighting conditions, surfaces, etc.
-#define lineSensorThreshold 1000
+#define borderThreshold 1000
 
 // The speed that the robot uses when backing up.
 #define reverseSpeed 400

@@ -10,7 +10,7 @@ uint16_t lastClockGyro = 0;
 // Average height (see calibration)
 int16_t avVelGyro;
 
-/* turnAngle is a 32-bit uint for amount of robot turn 
+/* turnAngle is a 32-bit uint for amount of robot turn
 0x20000000 represents a 45 degree counter-clockwise rotation. */
 uint32_t turnAngle = 0;
 
@@ -28,13 +28,13 @@ void gyroInit()
   gyro.writeReg(L3G::CTRL1, LOW_PASS);
   gyro.writeReg(L3G::CTRL4, MED_PASS);
   gyro.writeReg(L3G::CTRL5, HIGH_PASS);
-  
+
   ledYellow(1);
 
   delay(400);
 
   // gyro calib
-  int32_t i = 0; 
+  int32_t i = 0;
   int total=0;
   while (i++ < GYRO_CALIB_COUNT) {
       while(!gyro.readReg(L3G::STATUS_REG) & 0x08);
