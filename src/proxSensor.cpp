@@ -65,17 +65,6 @@ void senseReset()
   objectSeen = 0;
 }
 
-static void sensePrint() {
-    bool r = proxSensors.senseRight(brightnessRight);
-    lcd.clear();
-    lcd.gotoXY(0,0);
-    lcd.print('R'); lcd.print(r);
-    bool l = proxSensors.senseRight(brightnessRight);
-    lcd.clear();
-    lcd.gotoXY(0,0);
-    lcd.print('L'); lcd.print(l);
-}
-
 static void senseRight()
 {
   if (detectedLastTimeRight)

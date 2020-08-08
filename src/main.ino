@@ -115,7 +115,6 @@ void changeState(State & state)
 
 void changeStateToPausing();
 void changeStateToWaiting();
-void changeStateToSensing();
 void changeStateToTurningToCenter();
 void changeStateToDriving();
 void changeStateToBacking();
@@ -183,27 +182,11 @@ class StateWaiting : public State
     else
     {
       // We have waited long enough.  Start moving.
-      //changeStateToDriving();
-      changeStateToSensing();
+      changeStateToDriving();
     }
   }
 } stateWaiting;
 void changeStateToWaiting() { changeState(stateWaiting); }
-
-
-class StateSensing : public State
-{
-  void setup()
-  {
-  }
-
-  void loop()
-  {
-      sensePrint();
-  }
-} stateSensing;
-void changeStateToSensing() { changeState(stateSensing); }
-
 
 
 class StateTurningToCenter : public State

@@ -12,4 +12,3 @@ void senseInit();
 void senseReset();
 void sense();
 void senseTest();
-void sensePrint();
