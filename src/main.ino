@@ -108,6 +108,20 @@ void changeState(State & state)
 }
 
 
+bool borderCheck()
+{
+    // Check for the white border.
+    s.read(lineSensorValues);
+    if (lineSensorValues[0] < borderThreshold || lineSensorValues[2] < borderThreshold)
+    {
+      turnCenterDir = (lineSensorValues[0] < borderThreshold) ? DirectionRight : DirectionLeft;
+      changeStateToAnalyzingBorder();
+      return true;
+    }
+    return false;
+}
+
+
 
 ////////////////////////////////////////////////////////////
 // States
@@ -235,19 +249,13 @@ class StateDriving : public State
       changeStateToScanning();
     }
 
-    // Check for the white border.
-    s.read(lineSensorValues);
-    if (lineSensorValues[0] < borderThreshold || lineSensorValues[2] < borderThreshold)
+    if (borderCheck()) { return; }
+
+    // Read the proximity sensors to sense the opponent.
+    sense();
+    if (objectSeen)
     {
-      turnCenterDir = (lineSensorValues[0] < borderThreshold) ? DirectionRight : DirectionLeft;
-      changeStateToAnalyzingBorder();
-      return;
-    }
-    if (lineSensorValues[2] < borderThreshold)
-    {
-      turnCenterDir = DirectionLeft;
-      changeStateToAnalyzingBorder();
-      return;
+      changeStateToPushing();
     }
   }
 } stateDriving;
@@ -265,22 +273,30 @@ class StatePushing : public State
   {
     ledRed(1);
 
-    motors.setSpeeds(rammingSpeed, rammingSpeed);
+    sense();
+    ledYellow(objectSeen);
 
-    // Check for the white border.
-    s.read(lineSensorValues);
-    if (lineSensorValues[0] < borderThreshold)
+    // Within the first second, we try to steer towards the enemy.
+    // After that, we are probably locked in a stalemate and we should
+    // ensure our motors are running at full power.
+    if (objectSeen && timeInThisState() < stalemateTime)
     {
-      turnCenterDir = DirectionRight;
-      changeStateToAnalyzingBorder();
-      return;
+      if (brightnessLeft > brightnessRight)
+      {
+        // Swerve to the right.
+        motors.setSpeeds(rammingSpeed, rammingSpeedLow);
+      }
+      else
+      {
+        motors.setSpeeds(rammingSpeedLow, rammingSpeed);
+      }
     }
-    if (lineSensorValues[2] < borderThreshold)
+    else
     {
-      turnCenterDir = DirectionLeft;
-      changeStateToAnalyzingBorder();
-      return;
+      motors.setSpeeds(rammingSpeed, rammingSpeed);
     }
+
+    if (borderCheck()) { return; }
   }
 } statePushing;
 void changeStateToPushing() { changeState(statePushing); }
@@ -323,6 +339,7 @@ class StateScanning : public State
     degreesTurned = 0;
     angleBase = 0;
     gyroReset();
+    senseReset();
 
     if (scanDir == DirectionRight)
     {
@@ -356,6 +373,8 @@ class StateScanning : public State
       degreesTurned += 45;
     }
 
+    sense();
+
     uint16_t time = timeInThisState();
 
     if (degreesTurned >= scanDegreesMax)
@@ -365,7 +384,10 @@ class StateScanning : public State
     }
     else if (time > scanTimeMin)
     {
-        changeStateToPushing();
+        if (objectSeen)
+        {
+            changeStateToPushing();
+        }
     }
   }
 } stateScanning;
@@ -507,7 +529,7 @@ class StateCircling : public State
       motors.setSpeeds(circleLeftSpeed,circleRightSpeed);
       lcd.print(F("Circling"));
     }
-    
+
   }
 } stateCircling;
 void changeStateToCircling() { changeState(stateCircling); }
