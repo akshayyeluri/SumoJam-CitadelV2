@@ -8,7 +8,7 @@
 #define HIGH_PASS 0b00000000
 // (0.07 dps/digit) * (1/1000000 s/us) * (2^29/45 unit/degree)
 // = 14680063/17578125 unit/(digit*us)
-#define DPS_TO_INTERNAL_ANGLE (14680063/17578125)
+#define DPS_TO_INTERNAL_ANGLE 14680063 / 17578125
 
 
 ////////////////////////////////////////////////////////////
@@ -70,7 +70,7 @@
 #define analyzeSpeed 100
 
 // The speed for center turning.
-#define turnCenterSpeed 400
+#define turnCenterSpeed 80
 
 // The number of encoder ticks from edge to center
 #define edgeToCenterTicks 2100 // 2180

@@ -9,6 +9,7 @@ const int32_t turnAngle45 = 0x20000000;
 
 extern Zumo32U4ButtonA buttonA;
 extern Zumo32U4LCD lcd;
+extern L3G gyro;
 
 // Found in Gyro.cpp
 void gyroInit();

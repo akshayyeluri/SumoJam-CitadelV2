@@ -82,12 +82,12 @@ uint32_t calculateTurnCenterAngle(uint16_t counts)
     (uint32_t)((RAD_TO_INTERNAL_ANGLE * ANGLE_FUDGE) * atan((double)counts / sensorDistance));
 }
 
-extern RobotState * robotState;
+extern State * robotState;
 
 // Changes to a new state.  It also clears the LCD and turns off
 // the LEDs so that the things the previous state were doing do
 // not affect the feedback the user sees in the new state.
-void changeState(RobotState & state)
+void changeState(State & state)
 {
   justChangedState = true;
   stateStartTime = millis();
@@ -110,7 +110,7 @@ void changeStateToAnalyzingBorder();
 
 // In this state, we just wait for the user to press button
 // A, while displaying the battery voltage every 100 ms.
-class StatePausing : public RobotState
+class StatePausing : public State
 {
 public:
   void setup()
@@ -139,9 +139,9 @@ public:
   }
 } statePausing;
 void changeStateToPausing() { changeState(statePausing); }
-RobotState * robotState = &statePausing;
+State * robotState = &statePausing;
 
-class StateWaiting : public RobotState
+class StateWaiting : public State
 {
   void setup()
   {
@@ -173,7 +173,7 @@ class StateWaiting : public RobotState
 } stateWaiting;
 void changeStateToWaiting() { changeState(stateWaiting); }
 
-class StateTurningToCenter : public RobotState
+class StateTurningToCenter : public State
 {
   void setup()
   {
@@ -196,7 +196,7 @@ class StateTurningToCenter : public RobotState
 
     uint32_t angle = turnAngle;
     if (turnCenterDir == DirectionRight) { angle = -angle; }
-    if (angle > turnCenterAngle && angle < turnAngle45 * 7)
+    if (angle > turnCenterAngle && angle < (turnAngle45 * 7))
     {
       changeStateToDriving();
     }
@@ -206,7 +206,7 @@ void changeStateToTurningToCenter() { changeState(stateTurningToCenter); }
 
 
 
-class StateDriving : public RobotState
+class StateDriving : public State
 {
   void setup()
   {
@@ -243,7 +243,7 @@ class StateDriving : public RobotState
 } stateDriving;
 void changeStateToDriving() { changeState(stateDriving); }
 
-class StatePushing : public RobotState
+class StatePushing : public State
 {
   void setup()
   {
@@ -275,7 +275,7 @@ class StatePushing : public RobotState
 void changeStateToPushing() { changeState(statePushing); }
 
 // In this state, the robot drives in reverse.
-class StateBacking : public RobotState
+class StateBacking : public State
 {
   void setup()
   {
@@ -299,7 +299,7 @@ void changeStateToBacking() { changeState(stateBacking); }
 
 // In this state the robot rotates in place and tries to find
 // its opponent.
-class StateScanning : public RobotState
+class StateScanning : public State
 {
   uint16_t degreesTurned;
   uint32_t angleBase;
@@ -358,7 +358,7 @@ class StateScanning : public RobotState
 } stateScanning;
 void changeStateToScanning() { changeState(stateScanning); }
 
-class StateAnalyzingBorder : public RobotState
+class StateAnalyzingBorder : public State
 {
   void setup()
   {
@@ -412,7 +412,6 @@ void changeStateToAnalyzingBorder() { changeState(stateAnalyzingBorder); }
 
 void setup()
 {
-  senseInit();
   gyroInit();
   lineSensors.initThreeSensors();
   changeStateToPausing();
