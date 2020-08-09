@@ -141,7 +141,16 @@ bool sideCheck()
 {
     newProxSensors.read();
     bool onSides = false;
-    if (newProxSensors.countsFrontWithLeftLeds() + newProxSensors.countsFrontWithRightLeds() > 4) {
+    uint8_t l = newProxSensors.countsFrontWithLeftLeds();
+    uint8_t r = newProxSensors.countsFrontWithRightLeds();
+    if (l + r > 4) {
+        if (l - r >= 2) {
+          scanDir = DirectionLeft;
+          motors.setSpeeds(-rammingSpeedLow, rammingSpeedLow);
+        } else if (r - l >= 2) {
+          scanDir = DirectionRight;
+          motors.setSpeeds(rammingSpeedLow, -rammingSpeedLow);
+        }
         return onSides;
     }
     if (newProxSensors.countsLeftWithLeftLeds() >= 1)
