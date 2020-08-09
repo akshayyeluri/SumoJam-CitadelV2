@@ -409,6 +409,7 @@ class StateScanning : public State
 
   void loop()
   {
+    if (sideCheck()) { return; }
     // Use the gyro to figure out how far we have turned while in this
     // state.
     gyroUpdate();
@@ -501,93 +502,93 @@ class StateAnalyzingBorder : public State
 } stateAnalyzingBorder;
 void changeStateToAnalyzingBorder() { changeState(stateAnalyzingBorder); }
 
-class StateDriveAlmostCenter : public State
-{
-  void setup()
-  {
-    encoders.getCountsAndResetLeft();
-    encoders.getCountsAndResetRight();
-    motors.setSpeeds(testingSpeed, testingSpeed);
-    lcd.print(F("Drive Almost Center"));
-  }
-  void loop()
-  {
-    int16_t counts = encoders.getCountsLeft() + encoders.getCountsRight();
-    if (counts > 2 * fractionAlmostCenter * edgeToCenterTicks)
-    {
-      changeStateToCircling();
-    }
-  }
-} stateDriveAlmostCenter;
-void changeStateToDriveAlmostCenter() { changeState(stateDriveAlmostCenter); }
+// class StateDriveAlmostCenter : public State
+// {
+//   void setup()
+//   {
+//     encoders.getCountsAndResetLeft();
+//     encoders.getCountsAndResetRight();
+//     motors.setSpeeds(testingSpeed, testingSpeed);
+//     lcd.print(F("Drive Almost Center"));
+//   }
+//   void loop()
+//   {
+//     int16_t counts = encoders.getCountsLeft() + encoders.getCountsRight();
+//     if (counts > 2 * fractionAlmostCenter * edgeToCenterTicks)
+//     {
+//       changeStateToCircling();
+//     }
+//   }
+// } stateDriveAlmostCenter;
+// void changeStateToDriveAlmostCenter() { changeState(stateDriveAlmostCenter); }
 
-// In this state the robot rotates in place and tries to find
-// its opponent.
-class StateCircling : public State
-{
-  uint16_t degreesTurned;
-  uint32_t angleBase;
-  bool turned90;
+// // In this state the robot rotates in place and tries to find
+// // its opponent.
+// class StateCircling : public State
+// {
+//   uint16_t degreesTurned;
+//   uint32_t angleBase;
+//   bool turned90;
 
-  void setup()
-  {
-    lastStopAtEdge = false;
-    degreesTurned = 0;
-    angleBase = 0;
-    gyroReset();
+//   void setup()
+//   {
+//     lastStopAtEdge = false;
+//     degreesTurned = 0;
+//     angleBase = 0;
+//     gyroReset();
 
-    if (scanDir == DirectionRight)
-    {
-      motors.setSpeeds(turnSpeedHigh, -turnSpeedLow);
-    }
-    else
-    {
-      motors.setSpeeds(-turnSpeedLow, turnSpeedHigh);
-    }
+//     if (scanDir == DirectionRight)
+//     {
+//       motors.setSpeeds(turnSpeedHigh, -turnSpeedLow);
+//     }
+//     else
+//     {
+//       motors.setSpeeds(-turnSpeedLow, turnSpeedHigh);
+//     }
 
-    lcd.print(F("turn90"));
-    turned90 = false;
-  }
+//     lcd.print(F("turn90"));
+//     turned90 = false;
+//   }
 
-  void loop()
-  {
-    if (!turned90)
-    {
-      // Use the gyro to figure out how far we have turned while in this
-      // state.
-      gyroUpdate();
-      uint32_t angle1;
-      if (scanDir == DirectionRight)
-      {
-        angle1 = -turnAngle;
-      }
-      else
-      {
-        angle1 = turnAngle;
-      }
-      if ((int32_t)(angle1 - angleBase) > angle45)
-      {
-        angleBase += angle45;
-        degreesTurned += 45;
-      }
+//   void loop()
+//   {
+//     if (!turned90)
+//     {
+//       // Use the gyro to figure out how far we have turned while in this
+//       // state.
+//       gyroUpdate();
+//       uint32_t angle1;
+//       if (scanDir == DirectionRight)
+//       {
+//         angle1 = -turnAngle;
+//       }
+//       else
+//       {
+//         angle1 = turnAngle;
+//       }
+//       if ((int32_t)(angle1 - angleBase) > angle45)
+//       {
+//         angleBase += angle45;
+//         degreesTurned += 45;
+//       }
 
-      uint16_t time = timeInThisState();
+//       uint16_t time = timeInThisState();
 
-      if (degreesTurned >= 2 * angle45)
-      {
-        // We have not seen anything for a while, so start driving.
-        turned90 = true;
-      }
-    }
-    else
-    {
-      motors.setSpeeds(circleLeftSpeed,circleRightSpeed);
-      lcd.print(F("Circling"));
-    }
+//       if (degreesTurned >= 2 * angle45)
+//       {
+//         // We have not seen anything for a while, so start driving.
+//         turned90 = true;
+//       }
+//     }
+//     else
+//     {
+//       motors.setSpeeds(circleLeftSpeed,circleRightSpeed);
+//       lcd.print(F("Circling"));
+//     }
 
-  }
-} stateCircling;
-void changeStateToCircling() { changeState(stateCircling); }
+//   }
+// } stateCircling;
+// void changeStateToCircling() { changeState(stateCircling); }
 
 void setup()
 {
