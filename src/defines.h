@@ -14,7 +14,7 @@
 ////////////////////////////////////////////////////////////
 /* Main.ino */
 // Cuz our turning isn't perfect
-#define ANGLE_FUDGE 0.9
+#define ANGLE_FUDGE 0.75
 // Convert from radians to internal angle (0x80000000 / pi)
 #define RAD_TO_INTERNAL_ANGLE 0x28BE60DB
 
