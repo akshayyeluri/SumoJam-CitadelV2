@@ -4,6 +4,7 @@
 #include "StateClasses.h"
 #include "defines.h"
 #include "proxSensor.h"
+#include "CollisionDetect.h"
 
 ////////////////////////////////////////////////////////////
 // Structs and Enums
@@ -28,9 +29,11 @@ Zumo32U4LCD lcd;
 Zumo32U4LineSensors s;
 L3G gyro;
 Zumo32U4ProximitySensors newProxSensors;
+Accelerometer lsm303;
 
 unsigned int lineSensorValues[3];
 const char beep1[] PROGMEM = "!>32";
+const char sound_effect[] PROGMEM = "O4 T100 V15 L4 MS g12>c12>e12>G6>E12 ML>G2"; // "charge" melody
 
 
 uint16_t borderAnalyzeEncoderCounts;
@@ -141,7 +144,11 @@ bool sideCheck()
 {
     newProxSensors.read();
     bool onSides = false;
-    if (newProxSensors.countsFrontWithLeftLeds() + newProxSensors.countsFrontWithRightLeds() > 4) {
+    uint8_t l = newProxSensors.countsFrontWithLeftLeds();
+    uint8_t r = newProxSensors.countsFrontWithRightLeds();
+    if (l + r > 4) {
+        if (l - r >= 2) { motors.setSpeeds(-rammingSpeedLow, rammingSpeedLow); }
+        if (r - l >= 2) { motors.setSpeeds(rammingSpeedLow, -rammingSpeedLow); }
         return onSides;
     }
     if (newProxSensors.countsLeftWithLeftLeds() >= 1)
@@ -161,6 +168,22 @@ bool sideCheck()
         changeStateToPushing();
     }
     return onSides;
+}
+
+// sound horn and accelerate on contact -- fight or flight
+bool contactCheck()
+{
+  bool inContact = false;
+  if (check_for_contact()) {
+    ledGreen(1);
+    soundPlayer.playFromProgramSpace(sound_effect);
+    motors.setSpeeds(-rammingSpeed, rammingSpeed);
+    inContact = true;
+  }
+  if (inContact && (!isStatePushing())) {
+        changeStateToPushing();
+  }
+  return inContact;
 }
 
 
@@ -236,19 +259,12 @@ class StateDisplaying : public State
 {
     void setup() {}
     void loop() {
-        lcd.gotoXY(0, 0);
-        newProxSensors.read();
-        lcd.print(newProxSensors.countsFrontWithRightLeds());
-        lcd.print('.');
-        lcd.print(newProxSensors.countsFrontWithLeftLeds());
-        lcd.print('.');
-        lcd.print(newProxSensors.countsLeftWithLeftLeds());
-        lcd.print('.');
-        lcd.print(newProxSensors.countsRightWithRightLeds());
-        lcd.print('.');
+        check_for_contact();
+        motors.setSpeeds(200, 200);
+        delay(200);
     }
 } stateDisplaying;
-void changeStateDisplaying() { changeState(stateDisplaying); }
+void changeStateToDisplaying() { changeState(stateDisplaying); }
 
 class StateTurningToCenter : public State
 {
@@ -290,6 +306,7 @@ class StateDriving : public State
   void loop()
   {
     if (borderCheck()) { return; }
+    if (contactCheck()) { return; }
     
     int16_t counts = encoders.getCountsLeft() + encoders.getCountsRight();
 
@@ -298,13 +315,13 @@ class StateDriving : public State
       changeStateToScanning();
     }
 
-    if (sideCheck()) { return; }
+    //if (sideCheck()) { return; }
 
     // Read the proximity sensors to sense the opponent.
     sense();
     if (objectSeen)
     {
-      changeStateToPushing();
+      //changeStateToPushing();
     }
 
   }
@@ -324,7 +341,7 @@ class StatePushing : public State
     ledRed(1);
     
     if (borderCheck()) { return; }
-    if (sideCheck()) { return; }
+    //if (sideCheck()) { return; }
 
     sense();
     ledYellow(objectSeen);
@@ -353,7 +370,7 @@ class StatePushing : public State
   }
 } statePushing;
 void changeStateToPushing() { changeState(statePushing); }
-bool isStatePushing() { (currState == &statePushing); }
+bool isStatePushing() { return (currState == &statePushing); }
 
 
 // In this state, the robot drives in reverse.
@@ -441,13 +458,14 @@ class StateScanning : public State
     {
         if (objectSeen)
         {
-            changeStateToPushing();
+            //changeStateToPushing();
+            changeStateToDriving();
         }
     }
   }
 } stateScanning;
 void changeStateToScanning() { changeState(stateScanning); }
-bool isStateScanning() { (currState == &stateScanning); }
+bool isStateScanning() { return (currState == &stateScanning); }
 
 
 class StateAnalyzingBorder : public State
@@ -597,6 +615,8 @@ void setup()
   senseInit();
   newProxSensors.initThreeSensors();
   changeStateToPausing();
+  lsm303.init();
+  lsm303.enable();
 }
 
 
