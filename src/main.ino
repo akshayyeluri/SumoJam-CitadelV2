@@ -141,17 +141,20 @@ bool sideCheck()
 {
     newProxSensors.read();
     bool onSides = false;
-    if (newProxSensors.countsLeftWithLeftLeds() >= 2)
+    if (newProxSensors.countsFrontWithLeftLeds() + newProxSensors.countsFrontWithRightLeds() > 4) {
+        return onSides;
+    }
+    if (newProxSensors.countsLeftWithLeftLeds() >= 1)
     {
         scanDir = DirectionLeft;
         onSides = true;
-        motors.setSpeeds(rammingSpeedSuperLow, rammingSpeed);
+        motors.setSpeeds(-rammingSpeed, rammingSpeed);
     }
-    else if (newProxSensors.countsRightWithLeftLeds() >= 2)
+    else if (newProxSensors.countsRightWithRightLeds() >= 1)
     {
         scanDir = DirectionRight;
         onSides = true;
-        motors.setSpeeds(rammingSpeed, rammingSpeedSuperLow);
+        motors.setSpeeds(rammingSpeed, -rammingSpeed);
     }
 
     if (onSides && (!isStatePushing())) {
@@ -244,7 +247,7 @@ class StateDisplaying : public State
         lcd.print(newProxSensors.countsRightWithRightLeds());
         lcd.print('.');
     }
-}
+} stateDisplaying;
 void changeStateDisplaying() { changeState(stateDisplaying); }
 
 class StateTurningToCenter : public State
@@ -286,6 +289,8 @@ class StateDriving : public State
 
   void loop()
   {
+    if (borderCheck()) { return; }
+    
     int16_t counts = encoders.getCountsLeft() + encoders.getCountsRight();
 
     if (lastStopAtEdge && counts > (int16_t)edgeToCenterTicks * 2)
@@ -293,7 +298,6 @@ class StateDriving : public State
       changeStateToScanning();
     }
 
-    if (borderCheck()) { return; }
     if (sideCheck()) { return; }
 
     // Read the proximity sensors to sense the opponent.
@@ -318,7 +322,8 @@ class StatePushing : public State
   void loop()
   {
     ledRed(1);
-
+    
+    if (borderCheck()) { return; }
     if (sideCheck()) { return; }
 
     sense();
@@ -344,11 +349,11 @@ class StatePushing : public State
       motors.setSpeeds(rammingSpeed, rammingSpeed);
     }
 
-    if (borderCheck()) { return; }
+
   }
 } statePushing;
 void changeStateToPushing() { changeState(statePushing); }
-bool isStatePushing() { (&currState == &statePushing); }
+bool isStatePushing() { (currState == &statePushing); }
 
 
 // In this state, the robot drives in reverse.
@@ -441,7 +446,7 @@ class StateScanning : public State
   }
 } stateScanning;
 void changeStateToScanning() { changeState(stateScanning); }
-bool isStateScanning() { (&currState == &stateScanning); }
+bool isStateScanning() { (currState == &stateScanning); }
 
 
 class StateAnalyzingBorder : public State
