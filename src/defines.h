@@ -1,3 +1,5 @@
+#pragma once
+
 
 ////////////////////////////////////////////////////////////
 /* Gyro.cpp */
@@ -35,7 +37,7 @@
 #define turnSpeedLow 400
 
 // The speed that the robot usually uses when moving forward.
-#define forwardSpeed 400
+#define forwardSpeed 200
 
 // The speed that the robot drives when it thinks it is pushing or
 // about to push an opponent.
@@ -95,3 +97,7 @@
 //speed to circle with 
 #define circleLeftSpeed 200
 #define circleRightSpeed 400
+
+#define XY_ACCELERATION_THRESHOLD 4000  // for detection of contact (~16000 = magnitude of acceleration due to gravity)
+
+#define RA_SIZE 3
