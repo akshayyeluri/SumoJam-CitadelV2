@@ -45,7 +45,7 @@
 #define rammingSpeedLow 200
 
 // The speed used on non-dominant wheel to turn while being attacked.
-#define rammingSpeedSuperLow 200
+#define rammingSpeedSuperLow 0
 
 // The minimum amount of time to spend scanning for nearby
 // opponents, in milliseconds.

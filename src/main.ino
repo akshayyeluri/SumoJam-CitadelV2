@@ -118,6 +118,7 @@ void changeStateToScanning();
 void changeStateToAnalyzingBorder();
 void changeStateToDriveAlmostCenter();
 void changeStateToCircling();
+void changeStateToDisplaying();
 
 bool isStatePushing();
 bool isStateScanning();
@@ -144,18 +145,19 @@ bool sideCheck()
     {
         scanDir = DirectionLeft;
         onSides = true;
-        motors.setSpeeds(rammingSpeedLow, rammingSpeed);
+        motors.setSpeeds(rammingSpeedSuperLow, rammingSpeed);
     }
     else if (newProxSensors.countsRightWithLeftLeds() >= 2)
     {
         scanDir = DirectionRight;
         onSides = true;
-        motors.setSpeeds(rammingSpeedLow, rammingSpeed);
+        motors.setSpeeds(rammingSpeed, rammingSpeedSuperLow);
     }
 
     if (onSides && (!isStatePushing())) {
         changeStateToPushing();
     }
+    return onSides;
 }
 
 
@@ -220,8 +222,8 @@ class StateWaiting : public State
     else
     {
       // We have waited long enough.  Start moving.
-      changeStateToDisplaying();
-      //changeStateToDriving();
+      //changeStateToDisplaying();
+      changeStateToDriving();
     }
   }
 } stateWaiting;
@@ -243,6 +245,7 @@ class StateDisplaying : public State
         lcd.print('.');
     }
 }
+void changeStateDisplaying() { changeState(stateDisplaying); }
 
 class StateTurningToCenter : public State
 {
@@ -291,6 +294,7 @@ class StateDriving : public State
     }
 
     if (borderCheck()) { return; }
+    if (sideCheck()) { return; }
 
     // Read the proximity sensors to sense the opponent.
     sense();
@@ -314,6 +318,8 @@ class StatePushing : public State
   void loop()
   {
     ledRed(1);
+
+    if (sideCheck()) { return; }
 
     sense();
     ledYellow(objectSeen);
