@@ -69,7 +69,7 @@
 // in milliseconds, without reaching a border, the robot decides
 // that it must be pushing on another robot and this is a
 // stalemate, so it increases its motor speed.
-#define stalemateTime 1500
+#define stalemateTime 1000
 
 // The speed for border analysis.
 #define analyzeSpeed 100
@@ -100,4 +100,4 @@
 
 #define XY_ACCELERATION_THRESHOLD 4000  // for detection of contact (~16000 = magnitude of acceleration due to gravity)
 
-#define RA_SIZE 3
+#define RA_SIZE 10

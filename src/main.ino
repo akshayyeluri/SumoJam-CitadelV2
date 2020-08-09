@@ -122,6 +122,7 @@ void changeStateToAnalyzingBorder();
 void changeStateToDriveAlmostCenter();
 void changeStateToCircling();
 void changeStateToDisplaying();
+void changeStateToStaled();
 
 bool isStatePushing();
 bool isStateScanning();
@@ -257,11 +258,18 @@ void changeStateToWaiting() { changeState(stateWaiting); }
 
 class StateDisplaying : public State
 {
-    void setup() {}
+    int16_t lcount;
+    void setup() { lcount = 0;}
     void loop() {
-        check_for_contact();
-        motors.setSpeeds(200, 200);
-        delay(200);
+        motors.setSpeeds(400, 400);
+        lsm303.readAcceleration(millis());
+        if (lcount % 100 == 0) {
+            lcd.clear();
+            lcd.gotoXY(0,0);
+            lcd.print(F("Y"));
+            lcd.print(lsm303.y_avg());
+        }
+        lcount++;
     }
 } stateDisplaying;
 void changeStateToDisplaying() { changeState(stateDisplaying); }
@@ -306,7 +314,7 @@ class StateDriving : public State
   void loop()
   {
     if (borderCheck()) { return; }
-    if (contactCheck()) { return; }
+    // if (contactCheck()) { return; }
     
     int16_t counts = encoders.getCountsLeft() + encoders.getCountsRight();
 
@@ -315,18 +323,60 @@ class StateDriving : public State
       changeStateToScanning();
     }
 
-    //if (sideCheck()) { return; }
+    if (sideCheck()) { return; }
 
     // Read the proximity sensors to sense the opponent.
     sense();
     if (objectSeen)
     {
-      //changeStateToPushing();
+      changeStateToPushing();
     }
 
   }
 } stateDriving;
 void changeStateToDriving() { changeState(stateDriving); }
+
+class StateStaled : public State
+{
+  uint16_t staleSpeed;
+  uint32_t loopcount;
+  const uint8_t inc = 5;
+  const uint16_t staleSpeedCap = 250;
+  void setup() {
+    loopcount = 0;
+    staleSpeed = rammingSpeed;
+    lcd.clear();
+    lcd.gotoXY(0,0);
+    lcd.print(F("STALED"));
+  }
+
+  void loop() {
+    if (borderCheck()) { return; }
+    
+    sense();
+    ledYellow(objectSeen);
+
+    //if (!objectSeen) {
+    //  changeStateToDriving();
+    //}
+    loopcount++;
+    if (loopcount % 100 == 0) {
+      lcd.clear();
+      lcd.gotoXY(0,0);
+      lcd.print(staleSpeed);
+      if (staleSpeed > staleSpeedCap) {
+        staleSpeed -= inc;
+        motors.setSpeeds(staleSpeed, staleSpeed);
+      }
+      else {
+        changeStateToPushing();
+        return;
+      }
+    }
+  }
+} stateStaled;
+void changeStateToStaled() { changeState(stateStaled); }
+
 
 
 class StatePushing : public State
@@ -341,9 +391,10 @@ class StatePushing : public State
     ledRed(1);
     
     if (borderCheck()) { return; }
-    //if (sideCheck()) { return; }
+    if (sideCheck()) { return; }
 
     sense();
+    newProxSensors.read();
     ledYellow(objectSeen);
 
     // Within the first second, we try to steer towards the enemy.
@@ -360,6 +411,9 @@ class StatePushing : public State
       {
         motors.setSpeeds(rammingSpeedLow, rammingSpeed);
       }
+    }
+    else if (objectSeen || (newProxSensors.countsFrontWithLeftLeds() + newProxSensors.countsFrontWithRightLeds() >= 4)) {
+      changeStateToStaled();
     }
     else
     {
@@ -458,8 +512,8 @@ class StateScanning : public State
     {
         if (objectSeen)
         {
-            //changeStateToPushing();
-            changeStateToDriving();
+            changeStateToPushing();
+            //changeStateToDriving();
         }
     }
   }
