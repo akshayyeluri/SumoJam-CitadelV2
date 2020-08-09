@@ -37,7 +37,7 @@
 #define turnSpeedLow 400
 
 // The speed that the robot usually uses when moving forward.
-#define forwardSpeed 200
+#define forwardSpeed 400
 
 // The speed that the robot drives when it thinks it is pushing or
 // about to push an opponent.
@@ -69,7 +69,7 @@
 // in milliseconds, without reaching a border, the robot decides
 // that it must be pushing on another robot and this is a
 // stalemate, so it increases its motor speed.
-#define stalemateTime 1000
+#define stalemateTime 1700
 
 // The speed for border analysis.
 #define analyzeSpeed 100
@@ -101,3 +101,7 @@
 #define XY_ACCELERATION_THRESHOLD 4000  // for detection of contact (~16000 = magnitude of acceleration due to gravity)
 
 #define RA_SIZE 10
+
+#define stale_speed_dec 10
+#define stale_speed_cap 350
+#define stale_loop_count_mod 50

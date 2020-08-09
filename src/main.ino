@@ -148,7 +148,6 @@ bool sideCheck()
     uint8_t l = newProxSensors.countsFrontWithLeftLeds();
     uint8_t r = newProxSensors.countsFrontWithRightLeds();
     if (l + r > 4) {
-<<<<<<< HEAD
         if (l - r >= 2) {
           scanDir = DirectionLeft;
           motors.setSpeeds(-rammingSpeedLow, rammingSpeedLow);
@@ -156,10 +155,6 @@ bool sideCheck()
           scanDir = DirectionRight;
           motors.setSpeeds(rammingSpeedLow, -rammingSpeedLow);
         }
-=======
-        if (l - r >= 2) { motors.setSpeeds(-rammingSpeedLow, rammingSpeedLow); }
-        if (r - l >= 2) { motors.setSpeeds(rammingSpeedLow, -rammingSpeedLow); }
->>>>>>> f177136b6b83ecb8b018d9d3b291cbdf18e62666
         return onSides;
     }
     if (newProxSensors.countsLeftWithLeftLeds() >= 1)
@@ -259,7 +254,7 @@ class StateWaiting : public State
     else
     {
       // We have waited long enough.  Start moving.
-      //changeStateToDisplaying();
+      // changeStateToDisplaying();
       changeStateToDriving();
     }
   }
@@ -268,16 +263,20 @@ void changeStateToWaiting() { changeState(stateWaiting); }
 
 class StateDisplaying : public State
 {
-    int16_t lcount;
+    int32_t lcount;
     void setup() { lcount = 0;}
     void loop() {
-        motors.setSpeeds(400, 400);
-        lsm303.readAcceleration(millis());
+        motors.setSpeeds(0,0);
+        newProxSensors.read();
         if (lcount % 100 == 0) {
             lcd.clear();
             lcd.gotoXY(0,0);
-            lcd.print(F("Y"));
-            lcd.print(lsm303.y_avg());
+            int a = newProxSensors.countsFrontWithLeftLeds();
+            int b = newProxSensors.countsFrontWithRightLeds();
+            lcd.print(F("L"));
+            lcd.print(a);
+            lcd.print(F("R"));
+            lcd.print(b);
         }
         lcount++;
     }
@@ -350,8 +349,6 @@ class StateStaled : public State
 {
   uint16_t staleSpeed;
   uint32_t loopcount;
-  const uint8_t inc = 5;
-  const uint16_t staleSpeedCap = 250;
   void setup() {
     loopcount = 0;
     staleSpeed = rammingSpeed;
@@ -370,12 +367,12 @@ class StateStaled : public State
     //  changeStateToDriving();
     //}
     loopcount++;
-    if (loopcount % 100 == 0) {
+    if (loopcount % stale_loop_count_mod == 0) {
       lcd.clear();
       lcd.gotoXY(0,0);
       lcd.print(staleSpeed);
-      if (staleSpeed > staleSpeedCap) {
-        staleSpeed -= inc;
+      if (staleSpeed > stale_speed_cap) {
+        staleSpeed -= stale_speed_dec;
         motors.setSpeeds(staleSpeed, staleSpeed);
       }
       else {
@@ -422,11 +419,13 @@ class StatePushing : public State
         motors.setSpeeds(rammingSpeedLow, rammingSpeed);
       }
     }
-    else if (objectSeen || (newProxSensors.countsFrontWithLeftLeds() + newProxSensors.countsFrontWithRightLeds() >= 4)) {
+    // else if (objectSeen || (newProxSensors.countsFrontWithLeftLeds() + newProxSensors.countsFrontWithRightLeds() >= 4)) {
+    else if (timeInThisState() >= stalemateTime) {
       changeStateToStaled();
     }
     else
     {
+      // changeStateToStaled();
       motors.setSpeeds(rammingSpeed, rammingSpeed);
     }
 
