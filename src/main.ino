@@ -27,6 +27,7 @@ Zumo32U4Motors motors;
 Zumo32U4LCD lcd;
 Zumo32U4LineSensors s;
 L3G gyro;
+Zumo32U4ProximitySensors newProxSensors;
 
 unsigned int lineSensorValues[3];
 const char beep1[] PROGMEM = "!>32";
@@ -118,6 +119,9 @@ void changeStateToAnalyzingBorder();
 void changeStateToDriveAlmostCenter();
 void changeStateToCircling();
 
+bool isStatePushing();
+bool isStateScanning();
+
 
 bool borderCheck()
 {
@@ -130,6 +134,28 @@ bool borderCheck()
       return true;
     }
     return false;
+}
+
+bool sideCheck() 
+{
+    newProxSensors.read();
+    bool onSides = false;
+    if (newProxSensors.countsLeftWithLeftLeds() >= 2)
+    {
+        scanDir = DirectionLeft;
+        onSides = true;
+        motors.setSpeeds(rammingSpeedLow, rammingSpeed);
+    }
+    else if (newProxSensors.countsRightWithLeftLeds() >= 2)
+    {
+        scanDir = DirectionRight;
+        onSides = true;
+        motors.setSpeeds(rammingSpeedLow, rammingSpeed);
+    }
+
+    if (onSides && (!isStatePushing())) {
+        changeStateToPushing();
+    }
 }
 
 
@@ -194,12 +220,29 @@ class StateWaiting : public State
     else
     {
       // We have waited long enough.  Start moving.
-      changeStateToDriving();
+      changeStateToDisplaying();
+      //changeStateToDriving();
     }
   }
 } stateWaiting;
 void changeStateToWaiting() { changeState(stateWaiting); }
 
+class StateDisplaying : public State
+{
+    void setup() {}
+    void loop() {
+        lcd.gotoXY(0, 0);
+        newProxSensors.read();
+        lcd.print(newProxSensors.countsFrontWithRightLeds());
+        lcd.print('.');
+        lcd.print(newProxSensors.countsFrontWithLeftLeds());
+        lcd.print('.');
+        lcd.print(newProxSensors.countsLeftWithLeftLeds());
+        lcd.print('.');
+        lcd.print(newProxSensors.countsRightWithRightLeds());
+        lcd.print('.');
+    }
+}
 
 class StateTurningToCenter : public State
 {
@@ -255,6 +298,7 @@ class StateDriving : public State
     {
       changeStateToPushing();
     }
+
   }
 } stateDriving;
 void changeStateToDriving() { changeState(stateDriving); }
@@ -298,6 +342,7 @@ class StatePushing : public State
   }
 } statePushing;
 void changeStateToPushing() { changeState(statePushing); }
+bool isStatePushing() { (&currState == &statePushing); }
 
 
 // In this state, the robot drives in reverse.
@@ -390,6 +435,7 @@ class StateScanning : public State
   }
 } stateScanning;
 void changeStateToScanning() { changeState(stateScanning); }
+bool isStateScanning() { (&currState == &stateScanning); }
 
 
 class StateAnalyzingBorder : public State
@@ -537,6 +583,7 @@ void setup()
   gyroInit();
   s.initThreeSensors();
   senseInit();
+  newProxSensors.initThreeSensors();
   changeStateToPausing();
 }
 
